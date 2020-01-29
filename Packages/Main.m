@@ -42,6 +42,9 @@ InterfaceAssociation::usage=
 Begin["`Private`"];
 
 
+Unprotect[InterfaceMethod, InterfaceAttribute, InterfaceOverride];
+
+
 (* ::Subsection:: *)
 (*Properties*)
 
@@ -189,7 +192,7 @@ InterfaceCopyProperties[obj1_, obj2_, e_]:=
 
 
 defaultConstructorFailureFunction[head_, args__]:=
-  PackageRaiseException[
+  RaiseException[
     Automatic,
     "Failed to build `` object from data ``",
     head,
@@ -616,8 +619,8 @@ iRegisterInterfaceConstructor[
     head~SetAttributes~HoldAllComplete;
     With[{tag=SymbolName[head]},
       head[args___]?checkInvalid:=
-        With[{a=PackageExceptionBlock[tag]@constructor[args]},
-          PackageExceptionBlock[tag]@If[AssociationQ@a,
+        With[{a=ExceptionBlock[tag]@constructor[args]},
+          ExceptionBlock[tag]@If[AssociationQ@a,
             With[{a2=Append[a, "Version"->version]},
               If[TrueQ@validator@a2,
                 setValid@head[a2],
@@ -936,13 +939,13 @@ iRegisterInterfaceAccessor[head_, dispatcher_]:=
               unevaluate=False
               }, 
             unevaluate=
-              (MissingQ@res||Head[res]===lookup);
-            unevaluate=
-              unevaluate&&
+              Head[res]===lookup||(
+                MissingQ@res&&
                 (
                   KeyExistsQ[InterfaceAttributes[head], arg]||
                     KeyExistsQ[InterfaceMethods[head], arg]
-                  );
+                  )
+                );
             res/;!unevaluate
             ];
         obj_head?valid[meth_String[arg___]]:=
@@ -952,10 +955,10 @@ iRegisterInterfaceAccessor[head_, dispatcher_]:=
               unevaluate=False
               }, 
             unevaluate=
-              (MissingQ@res||Head[res]===lookup);
-            unevaluate=
-              unevaluate&&
-                KeyExistsQ[InterfaceMethods[head], meth];
+              Head[res]===lookup||(
+                MissingQ@res&&
+                  KeyExistsQ[InterfaceMethods[head], meth]
+                );
             res/;!unevaluate
             ];
         obj_head?valid[arg:Except[_String|_String[___]]]:=
